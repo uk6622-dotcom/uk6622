@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏫 초등학생 AI 선생님</title>
+  <style>
+    :root {
+      --primary: #6C63FF;
+      --primary-light: #EEF0FF;
+      --secondary: #FF6B6B;
+      --success: #48BB78;
+      --warning: #F6AD55;
+      --bg: #F7F8FC;
+      --card: #FFFFFF;
+      --text: #2D3748;
+      --text-muted: #718096;
+      --border: #E2E8F0;
+      --radius: 16px;
+      --shadow: 0 4px 20px rgba(108,99,255,0.10);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #6C63FF 0%, #9F7AEA 100%);
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(108,99,255,0.25);
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .api-key-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 6px 12px;
+    }
+
+    .api-key-wrap input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: white;
+      font-size: 0.85rem;
+      width: 180px;
+    }
+
+    .api-key-wrap input::placeholder { color: rgba(255,255,255,0.6); }
+
+    .btn-icon {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      border-radius: 10px;
+      padding: 7px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.2s;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,0.35); }
+
+    /* ── Subject bar ── */
+    .subject-bar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    .subject-bar::-webkit-scrollbar { display: none; }
+
+    .subject-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: var(--card);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.2s;
+      color: var(--text-muted);
+    }
+
+    .subject-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .subject-btn.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 2px 8px rgba(108,99,255,0.3);
+    }
+
+    /* ── Grade selector ── */
+    .grade-select {
+      margin-left: auto;
+      padding: 7px 12px;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: var(--card);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .grade-select:focus { border-color: var(--primary); }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    /* ── Chat area ── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    #chat::-webkit-scrollbar { width: 5px; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+    .welcome {
+      text-align: center;
+      padding: 32px 20px;
+      color: var(--text-muted);
+    }
+    .welcome .big-emoji { font-size: 3.5rem; margin-bottom: 10px; }
+    .welcome h2 { font-size: 1.4rem; color: var(--text); margin-bottom: 8px; }
+    .welcome p { font-size: 0.95rem; line-height: 1.6; }
+
+    .quick-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 18px;
+    }
+
+    .quick-btn {
+      padding: 9px 18px;
+      border-radius: 20px;
+      border: 2px solid var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: var(--primary);
+      color: white;
+    }
+
+    /* ── Messages ── */
+    .msg {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      max-width: 82%;
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+    .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+    .msg.assistant { align-self: flex-start; }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .msg.user .avatar { background: var(--primary); }
+    .msg.assistant .avatar { background: var(--warning); }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: 0.97rem;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    .msg.user .bubble {
+      background: var(--primary);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .bubble {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+      color: var(--text);
+    }
+
+    .msg.assistant .bubble p { margin-bottom: 6px; }
+    .msg.assistant .bubble p:last-child { margin-bottom: 0; }
+    .msg.assistant .bubble strong { color: var(--primary); }
+    .msg.assistant .bubble code {
+      background: #F0EEFF;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 0.9em;
+      color: var(--primary);
+    }
+
+    .typing-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      margin-right: 4px;
+      animation: bounce 1.2s infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    /* ── Input bar ── */
+    .input-bar {
+      padding: 12px 0 20px;
+      flex-shrink: 0;
+    }
+
+    .input-wrap {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      padding: 8px 8px 8px 18px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s;
+    }
+    .input-wrap:focus-within { border-color: var(--primary); }
+
+    #user-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 0.97rem;
+      background: transparent;
+      color: var(--text);
+      resize: none;
+      max-height: 120px;
+      line-height: 1.5;
+      padding: 4px 0;
+      font-family: inherit;
+    }
+
+    #user-input::placeholder { color: var(--text-muted); }
+
+    .send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: var(--primary);
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .send-btn:hover { background: #574fcc; }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #2D3748;
+      color: white;
+      padding: 10px 22px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .header-title h1 { font-size: 1.1rem; }
+      .api-key-wrap input { width: 130px; }
+      .msg { max-width: 92%; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <span style="font-size:1.6rem">🏫</span>
+    <h1>AI 선생님</h1>
+  </div>
+  <div class="header-controls">
+    <div class="api-key-wrap">
+      <span>🔑</span>
+      <input type="password" id="api-key" placeholder="API 키 입력..." />
+    </div>
+    <button class="btn-icon" onclick="clearChat()" title="대화 초기화">🗑️ 초기화</button>
+  </div>
+</header>
+
+<div class="subject-bar">
+  <button class="subject-btn active" data-subject="전체" onclick="selectSubject(this)">📚 전체</button>
+  <button class="subject-btn" data-subject="수학" onclick="selectSubject(this)">🔢 수학</button>
+  <button class="subject-btn" data-subject="과학" onclick="selectSubject(this)">🔬 과학</button>
+  <button class="subject-btn" data-subject="국어" onclick="selectSubject(this)">📖 국어</button>
+  <button class="subject-btn" data-subject="사회" onclick="selectSubject(this)">🌍 사회</button>
+  <button class="subject-btn" data-subject="영어" onclick="selectSubject(this)">🔤 영어</button>
+  <button class="subject-btn" data-subject="미술/음악" onclick="selectSubject(this)">🎨 미술/음악</button>
+  <select class="grade-select" id="grade-select">
+    <option value="">전체 학년</option>
+    <option>1학년</option>
+    <option>2학년</option>
+    <option>3학년</option>
+    <option>4학년</option>
+    <option>5학년</option>
+    <option>6학년</option>
+  </select>
+</div>
+
+<main>
+  <div id="chat">
+    <div class="welcome" id="welcome">
+      <div class="big-emoji">🤖</div>
+      <h2>안녕! 나는 AI 선생님이야 👋</h2>
+      <p>궁금한 것은 뭐든지 물어봐!<br/>수학, 과학, 국어, 사회, 영어 다 도와줄 수 있어 😊</p>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="sendQuick('재미있는 퀴즈 내줘! 🎯')">🎯 퀴즈 내줘</button>
+        <button class="quick-btn" onclick="sendQuick('오늘 배울 내용 설명해줘 📖')">📖 개념 설명</button>
+        <button class="quick-btn" onclick="sendQuick('문제 하나 내줘! 🧮')">🧮 문제 내줘</button>
+        <button class="quick-btn" onclick="sendQuick('재미있는 예시 들어줘 💡')">💡 예시 들어줘</button>
+        <button class="quick-btn" onclick="sendQuick('오늘의 공부 팁 알려줘 ⭐')">⭐ 공부 팁</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-bar">
+    <div class="input-wrap">
+      <textarea id="user-input" placeholder="질문을 입력하세요... (예: 분수가 뭐야?)" rows="1"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  const chatEl = document.getElementById('chat');
+  const inputEl = document.getElementById('user-input');
+  const sendBtn = document.getElementById('send-btn');
+  const welcomeEl = document.getElementById('welcome');
+
+  let messages = [];
+  let isStreaming = false;
+  let currentSubject = '전체';
+
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Load API key from localStorage
+  const savedKey = localStorage.getItem('anthropic_api_key');
+  if (savedKey) document.getElementById('api-key').value = savedKey;
+
+  document.getElementById('api-key').addEventListener('change', (e) => {
+    localStorage.setItem('anthropic_api_key', e.target.value);
+  });
+
+  function selectSubject(btn) {
+    document.querySelectorAll('.subject-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSubject = btn.dataset.subject;
+  }
+
+  function sendQuick(text) {
+    inputEl.value = text;
+    sendMessage();
+  }
+
+  function clearChat() {
+    messages = [];
+    chatEl.innerHTML = '';
+    chatEl.appendChild(welcomeEl);
+    welcomeEl.style.display = '';
+    showToast('대화가 초기화됐어요 🗑️');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function addMessage(role, content) {
+    if (welcomeEl.parentNode) welcomeEl.style.display = 'none';
+
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '🧒' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    if (role === 'assistant') {
+      bubble.innerHTML = renderMarkdown(content);
+    } else {
+      bubble.textContent = content;
+    }
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return bubble;
+  }
+
+  function addTyping() {
+    if (welcomeEl.parentNode) welcomeEl.style.display = 'none';
+    const wrap = document.createElement('div');
+    wrap.className = 'msg assistant';
+    wrap.id = 'typing-indicator';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return wrap;
+  }
+
+  function renderMarkdown(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br/>');
+  }
+
+  async function sendMessage() {
+    if (isStreaming) return;
+
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) {
+      showToast('🔑 API 키를 먼저 입력해주세요!');
+      document.getElementById('api-key').focus();
+      return;
+    }
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    messages.push({ role: 'user', content: text });
+    addMessage('user', text);
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+
+    const typingEl = addTyping();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          subject: currentSubject,
+          grade: document.getElementById('grade-select').value,
+          api_key: apiKey,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || '오류가 발생했어요.');
+      }
+
+      typingEl.remove();
+      const bubble = addMessage('assistant', '');
+      let fullText = '';
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+
+        const lines = buf.split('\n');
+        buf = lines.pop();
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const raw = line.slice(6).trim();
+          if (raw === '[DONE]') break;
+          try {
+            const data = JSON.parse(raw);
+            if (data.error) {
+              showToast('❌ ' + data.error);
+              break;
+            }
+            if (data.text) {
+              fullText += data.text;
+              bubble.innerHTML = renderMarkdown(fullText);
+              chatEl.scrollTop = chatEl.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+
+      messages.push({ role: 'assistant', content: fullText });
+    } catch (e) {
+      typingEl.remove();
+      showToast('❌ ' + (e.message || '오류가 발생했어요.'));
+    } finally {
+      isStreaming = false;
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+</script>
+</body>
+</html>
